@@ -1,0 +1,27 @@
+{
+  "name": "gatherly-video-conferencing",
+  "version": "2.0.0",
+  "description": "A real-time video meeting workspace with chat, screen sharing, recording, and a collaborative whiteboard.",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "check": "node --check backend/server.js && node --check frontend/public/script.js",
+    "test": "node tests/smoke.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "author": "Gatherly",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "peer": "^1.0.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "socket.io-client": "^4.8.1"
+  }
+}
