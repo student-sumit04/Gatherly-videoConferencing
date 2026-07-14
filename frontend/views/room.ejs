@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Gatherly — a focused space for video calls and collaboration.">
+    <title>Gatherly · Meeting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  </head>
+  <body data-room-id="<%= roomId %>">
+    <div class="join-screen" id="joinScreen">
+      <section class="join-card">
+        <div class="brand brand--dark"><span class="brand__mark">G</span><span>Gatherly</span></div>
+        <div class="join-preview">
+          <video id="previewVideo" autoplay muted playsinline></video>
+          <div class="avatar-fallback" id="previewFallback">G</div>
+          <div class="preview-controls">
+            <button class="round-button" id="previewMic" aria-label="Toggle microphone" title="Toggle microphone"><span data-icon="mic"></span></button>
+            <button class="round-button" id="previewCamera" aria-label="Toggle camera" title="Toggle camera"><span data-icon="camera"></span></button>
+          </div>
+        </div>
+        <div class="join-copy">
+          <p class="eyebrow">You’re about to join</p>
+          <h1>Ready when you are.</h1>
+          <p>Check your camera and choose how you’ll appear in the room.</p>
+        </div>
+        <form id="joinForm" class="join-form">
+          <label for="displayName">Your name</label>
+          <input id="displayName" name="displayName" maxlength="36" autocomplete="name" placeholder="e.g. Alex Morgan" required>
+          <p class="form-error" id="joinError" role="alert"></p>
+          <button class="primary-button" type="submit">Join meeting <span aria-hidden="true">→</span></button>
+        </form>
+      </section>
+      <p class="join-note">Camera and microphone stay on your device until you join.</p>
+    </div>
+
+    <div class="app-shell" id="appShell" hidden>
+      <header class="topbar">
+        <div class="brand"><span class="brand__mark">G</span><span>Gatherly</span></div>
+        <div class="meeting-meta">
+          <span class="status-dot"></span>
+          <span id="meetingTitle">Team room</span>
+          <span class="meeting-code" id="meetingCode"></span>
+        </div>
+        <div class="topbar__actions">
+          <button class="icon-button" id="copyLink" aria-label="Copy invite link" title="Copy invite link"><span data-icon="link"></span></button>
+          <button class="leave-button" id="leaveMeeting">Leave</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="stage" id="stage">
+          <div class="stage__notice" id="statusNotice" role="status">Preparing your meeting…</div>
+          <div class="video-grid" id="videoGrid"></div>
+          <section class="whiteboard" id="whiteboardPanel" hidden>
+            <div class="whiteboard__header">
+              <div><span class="eyebrow">Shared canvas</span><h2>Team whiteboard</h2></div>
+              <div class="whiteboard__tools">
+                <label class="color-tool" title="Pen color"><input type="color" id="brushColor" value="#5b5ce2"><span></span></label>
+                <button class="tool-button is-active" id="penTool">Pen</button>
+                <button class="tool-button" id="eraserTool">Eraser</button>
+                <button class="tool-button" id="clearBoard">Clear</button>
+              </div>
+            </div>
+            <div class="canvas-wrap"><canvas id="whiteboardCanvas"></canvas></div>
+          </section>
+
+          <div class="controls" aria-label="Meeting controls">
+            <div class="control-group">
+              <button class="control-button" id="micButton"><span class="control-button__icon" data-icon="mic"></span><span>Mute</span></button>
+              <button class="control-button" id="cameraButton"><span class="control-button__icon" data-icon="camera"></span><span>Stop video</span></button>
+            </div>
+            <div class="control-divider"></div>
+            <div class="control-group">
+              <button class="control-button" id="shareButton"><span class="control-button__icon" data-icon="screen"></span><span>Share</span></button>
+              <button class="control-button" id="recordButton"><span class="control-button__icon" data-icon="record"></span><span>Record</span></button>
+              <button class="control-button" id="boardButton"><span class="control-button__icon" data-icon="board"></span><span>Board</span></button>
+            </div>
+            <div class="control-divider"></div>
+            <div class="control-group">
+              <button class="control-button" id="participantsButton"><span class="control-button__icon" data-icon="people"></span><span>People</span><span class="count-badge" id="participantCount">1</span></button>
+              <button class="control-button" id="chatButton"><span class="control-button__icon" data-icon="chat"></span><span>Chat</span><span class="unread-dot" id="unreadDot" hidden></span></button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-panel" id="sidePanel">
+          <div class="panel-tabs">
+            <button class="panel-tab is-active" data-panel="chat">Chat</button>
+            <button class="panel-tab" data-panel="people">People <span id="tabCount">1</span></button>
+            <button class="icon-button panel-close" id="closePanel" aria-label="Close panel"><span data-icon="close"></span></button>
+          </div>
+          <section class="panel-view chat-panel is-active" id="chatPanel">
+            <div class="messages" id="messages" aria-live="polite">
+              <div class="empty-state" id="chatEmpty"><span data-icon="chat"></span><h3>Start the conversation</h3><p>Messages sent here are visible to everyone in this room.</p></div>
+            </div>
+            <form class="composer" id="messageForm">
+              <textarea id="chatMessage" rows="1" maxlength="1000" placeholder="Message everyone" aria-label="Message everyone"></textarea>
+              <button type="submit" aria-label="Send message"><span data-icon="send"></span></button>
+            </form>
+          </section>
+          <section class="panel-view people-panel" id="peoplePanel">
+            <div class="people-heading"><h2>In this meeting</h2><button class="secondary-button" id="invitePeople"><span data-icon="link"></span> Invite</button></div>
+            <div class="people-list" id="peopleList"></div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+    <script src="/script.js"></script>
+  </body>
+</html>
